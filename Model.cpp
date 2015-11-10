@@ -393,10 +393,11 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	//store original in old
 	ball_sizes_original.push_back(ball_size);
 	//add vertices to the vertices vector
-	add_vertices(x,y,ball_size);
+	add_vertices(x,y,BALL_SIZE);
 
-
-
+	//matrix scaling
+	float scale_factor=ball_size/BALL_SIZE;
+	glm::mat4 scale = glm::scale(modelMatVec[_number_of_circles-1], glm::vec3(scale_factor, scale_factor, 0.f));
 
 	//Make sure the new vertices get 'added' to the buffer.
 	glBindVertexArray(_vao);
