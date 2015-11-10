@@ -71,7 +71,6 @@ Model _model;
 int main(int argc, char* argv[])
 {
 	std::cout << "Starting ex1..." << std::endl;
-	
 	// Initialize GLUT
     glutInit(&argc, argv) ;
 #ifdef __APPLE__
