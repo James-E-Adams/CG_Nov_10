@@ -135,7 +135,7 @@ void Model::draw()
 	//loop through and draw all the circles, creating the correct transformations
 	for(int i = 0; i < _number_of_circles; ++i)
 	{
-		glDrawArrays(GL_TRIANGLE_FAN, i*numberOfVertices, numberOfVertices);
+		glDrawArrays(GL_TRIANGLE_FAN, 0, numberOfVertices);
 		createTransfrom(i);
 		glUniform4f(_fillColorUV, colorVec[i].r, colorVec[i].g, colorVec[i].b, 1.0);
 
@@ -177,13 +177,19 @@ void Model::resize(int width, int height)
 
 
 /**
- * Transform the vertices in the animation. Checks if window bounds were detected (in the path of the balls) and
- * change the the transformation/translation direction.
  *
- * TODO: Circle jump form window edge to the wanted direction
- * TODO: Make it work with more than one ball
- * TODO: Proper function commenting. 
- */
+ *
+ *********************************************************************
+ * Function  :   createTransform
+ * Arguments :
+ * Returns   :
+ * Throws    :   n/a
+ *
+ * Purpose   : Transform the vertices in the animation. Checks if window bounds were detected (in the path of the balls),
+ * change the the transformation/translation direction, as well as calling the necessary grow/shrink functions.
+ *
+ *
+ \******************************************************************/
 void Model::createTransfrom(int circle_id)
 {
     GLuint program = programManager::sharedInstance().programWithID("default");
@@ -192,16 +198,7 @@ void Model::createTransfrom(int circle_id)
     GLint uniform_trans = glGetUniformLocation(program, "translation");
     glm::mat4 translation;
 
-
-    //Checks if the transformation will force the ball to hit a wall
-    //if so, bounces off the wall correctly.
-
-    std::cout<<"Printing array of ball sizes: \n";
-    for (unsigned int i=0; i< ball_sizes.size(); i++) {
-    	std::cout<<ball_sizes[i]<<"\n";
-    }
-
-
+	//growing for collisions.
 	grow();
 
 	//checks if the ball is going to hit a wall. If so, reflect off the wall as required.
@@ -209,103 +206,109 @@ void Model::createTransfrom(int circle_id)
 
     if (check_border_y(circle_id)) transformationVec[circle_id].y*=-1.f;
 
+	//Performs the necessary translation
 
-
-
-
-
-	//What's happening here? (TODO commenting)
     translation = glm::translate(modelMatVec[circle_id], transformationVec[circle_id]);
-//    translation *= modelMatVec[circle_id];
     glUniformMatrix4fv(uniform_trans, 1, GL_FALSE, glm::value_ptr(translation));
 	modelMatVec[circle_id] = translation;
 
-	//shrinking and growing for collisions.
+	//shrinking for collisions.
 	shrink();
 
 }
-
+/********************************************************************
+ * Function  :   grow
+ * Arguments :
+ * Returns   :
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function handles the growing of balls, post-collision, with a safe-guard to ensure
+ * 				 they don't end up larger than they started.
+ *
+ *
+ \******************************************************************/
 
 void Model::grow() {
 
-	float scale_factor=0.995f;
-
-
 	for (int i=0; i<_number_of_circles; i++) {
 
+		//this means we need to resize (i.e enlarge) the ball.
 		if (ball_sizes[i] < ball_sizes_original[i]) {
-
-			glm::mat4 scale = glm::scale(modelMatVec[i], glm::vec3(1/scale_factor, 1/scale_factor, 0.f));
-			modelMatVec[i] = scale;
-//			glUniformMatrix4fv(_scaleUV, 1, GL_FALSE, glm::value_ptr(scale));
-			ball_sizes[i] *= 1/scale_factor;
+			//safeguard to avoid making the ball larger than it was originally.
+			if (ball_sizes[i]/SCALE_FACTOR > ball_sizes_original[i]) {
+				float adjusted_scale_factor = ball_sizes[i]/ball_sizes_original[i];
+				glm::mat4 scale = glm::scale(modelMatVec[i], glm::vec3(1/adjusted_scale_factor,
+																	   1/adjusted_scale_factor, 0.f));
+			}
+			else {
+				glm::mat4 scale = glm::scale(modelMatVec[i], glm::vec3(1 / SCALE_FACTOR, 1 / SCALE_FACTOR, 0.f));
+				modelMatVec[i] = scale;
+				ball_sizes[i] *= 1 / SCALE_FACTOR;
+			}
 		}
-//		else
-//		{
-//			glUniformMatrix4fv(_scaleUV, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
-//		}
+
 	}
 }
-
+/********************************************************************
+ * Function  :   shrink
+ * Arguments :
+ * Returns   :
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function handles the shrinking of balls, in order to avoid potential collisions.
+ *
+ *
+ \******************************************************************/
 void Model::shrink() {
 	float x_1,x_2,y_1,y_2;
 
+	//needs to be a nested loop, so that every ball-ball collision is considered.
 	for (int i=0; i<_number_of_circles; i++) {
+		//store ball 1's centre.
 		x_1=modelMatVec[i][3].x;
 		y_1=modelMatVec[i][3].y;
 
 		for(int j=0; j<_number_of_circles; j++) {
+			//skip over if looking at ball x colliding with ball x.
 			if (i==j) continue;
+			//store ball 2's centre.
 			x_2=modelMatVec[j][3].x;
 			y_2=modelMatVec[j][3].y;
+			//calculate the distance between the two balls.
 			float x_distance = x_2-x_1;
 			float y_distance = y_2-y_1;
 			float distance = sqrt(x_distance*x_distance + y_distance*y_distance);
-			float scale_factor = 0.995f;
-			glm::mat4 scale_i = glm::scale(modelMatVec[i], glm::vec3(scale_factor, scale_factor, 0.f));
-			glm::mat4 scale_j = glm::scale(modelMatVec[j], glm::vec3(scale_factor, scale_factor, 0.f));
-			if (distance<(ball_sizes[i]+ball_sizes[j])) {
+			//scale both balls adequately
+			glm::mat4 scale_i = glm::scale(modelMatVec[i], glm::vec3(SCALE_FACTOR, SCALE_FACTOR, 0.f));
+			glm::mat4 scale_j = glm::scale(modelMatVec[j], glm::vec3(SCALE_FACTOR, SCALE_FACTOR, 0.f));
+			if (distance<=(ball_sizes[i]+ball_sizes[j])) {
 				if(ball_sizes[i] > 0.03)
 				{
-//					modelMatVec[i] = scale * modelMatVec[i];
 					modelMatVec[i] = scale_i;
 
-					ball_sizes[i] *= scale_factor;
+					ball_sizes[i] *= SCALE_FACTOR;
 				}
 				if(ball_sizes[j] > 0.03)
 				{
-//					modelMatVec[j] = scale * modelMatVec[j];
 					modelMatVec[j] = scale_j;
-					ball_sizes[j] *= scale_factor;
+					ball_sizes[j] *= SCALE_FACTOR;
 
 				}
-				//what to do if there is a collision?
-				//Shrink here.
-			}
-//			else {
-//				glm::scale(glm::vec3(1/scale_factor, 1/scale_factor, 0.f));
-//				if (ball_sizes[i] < ball_sizes_original[i]) {
-//					modelMatVec[i] = scale * modelMatVec[i];
-//					ball_sizes[i] *= scale_factor;
-//				}
-//				if(ball_sizes[j] < ball_sizes_original[j]) {
-//
-//					modelMatVec[j] = scale * modelMatVec[j];
-//					ball_sizes[j] *= scale_factor;
-//
-//				}
-
-
 			}
 		}
-
-
-
-
+	}
 }
 
 
-
+/********************************************************************
+ * Function  :   check_border_x
+ * Arguments :   circle_id  : which circle to check
+ * Returns   :   1 if hits the border, 0 if not.
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function handles the checking of horizontal border collisions.
+ *
+ \******************************************************************/
 int Model::check_border_x(int circle_id) {
 	float ball_size;
 	if (ball_sizes.size()>0) ball_size=ball_sizes[circle_id];
@@ -316,6 +319,15 @@ int Model::check_border_x(int circle_id) {
 	return 0;
 }
 
+/********************************************************************
+ * Function  :   check_border_y
+ * Arguments :   circle_id  : which circle to check
+ * Returns   :   1 if hits the border, 0 if not.
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function handles the checking of vertical border collisions.
+ *
+ \******************************************************************/
 int Model::check_border_y(int circle_id) {
 	float ball_size;
 	if (ball_sizes.size()>0) ball_size=ball_sizes[circle_id];
@@ -328,7 +340,18 @@ int Model::check_border_y(int circle_id) {
 
 
 
-//generate random vec3 TODO Proper function commenting.
+
+/********************************************************************
+ * Function  :   generateRand
+ * Arguments :   high  : upper bound for randomisation
+ *               low  : lower bound for randomisation
+ *               color: Switch. If 1, returns a vector which suits a randomised color.
+ * Returns   :   randomised vector, suitable for a colour if the given mode is enabled.
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function handles the generation of a suitable random translation/colour.
+ *
+ \******************************************************************/
 glm::vec3 Model::generateRand(float high, float low, int color)
 {
 	float x_trans = low + static_cast <float> (std::rand()) /( static_cast <float> (RAND_MAX/(high-low)));
@@ -392,9 +415,6 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	ball_sizes.push_back(ball_size);
 	//store original in old
 	ball_sizes_original.push_back(ball_size);
-	//add vertices to the vertices vector
-	add_vertices(x,y,BALL_SIZE);
-
 	//matrix scaling
 	float scale_factor=ball_size/BALL_SIZE;
 	glm::mat4 scale = glm::scale(modelMatVec[_number_of_circles-1], glm::vec3(scale_factor, scale_factor, 0.f));
@@ -410,7 +430,7 @@ void Model::create_new_ball(int x_pos,int y_pos) {
  * Function  :   find_ball_size
  * Arguments :   x_pos  : x value of the mouse location at which to create a new ball
  *               y_pos  : y value of the mouse location at which to create a new ball
- * Returns   :   n/a
+ * Returns   :   ball_size: ball size to create the new ball with.
  * Throws    :   n/a
  *
  * Purpose   :   This function works out what size to make the new ball, based on borders/other balls.
@@ -432,12 +452,22 @@ float Model::find_ball_size(float x, float y) {
 			//std::cout<<"There was a collision. \n";
 			ball_size=collision;
 		}
-	}         
-
+	}
 	return ball_size;
 }
 
-//return the required distance to prevent a collision
+/********************************************************************
+ * Function  :   pre_collision
+ * Arguments :   current_ball_id: The already existing ball we are comparing with.
+ *               x : x value of the centre of the new ball to be created.
+ *               y : y value of the centre of the new ball to be created.
+ *               ball_size: current prospective ball size of the new ball to be created
+ * Returns   :   new ball size
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function works out what size to make the new ball, based on borders/other balls.
+ *
+ \******************************************************************/
 float Model::pre_collision(int current_ball_id,float x, float y, float ball_size) {
 
 	//printMat(modelMatVec[current_ball_id]);

@@ -44,7 +44,8 @@ URLs used: https://www.opengl.org/discussion_boards/showthread.php/170331-Fragme
 
 EX1b additional notes:
 
-Changes made:
+Changes made:Lots of new functions required to implement the feature below. Vertex and Fragment shader re-written.
+
 
 Implementation notes:
 
@@ -55,8 +56,15 @@ Wall collisions: Check to see if the ball will hit the wall. If so, reflect the 
 Generation of new balls: Check to see if the new ball will be in range of a wall/other ball collision, and account
 						for this.
 
+Shader/light source: Calculated the direction between the fixed light source and the centre of each ball. Calculated the
+					location of the 'highlight' on each ball, halfway from the centre. And then, normalised the
+					directional vector to world coordinates. Calculated the distance between the highlight and every
+					point on the ball. Adjusted the light proportionally.
 
-Shader/light source:
+Collisions between balls: Calculated whether the balls would collide. If so, shrunk them proportionally to avoid
+						  the collision. Later on, growth function accounts for the regrowth of the balls, post-collision.
+
+
 
 
 

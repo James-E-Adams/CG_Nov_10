@@ -31,6 +31,7 @@
 #define WINDOW_SIZE 600
 #define HIGH_RAND_RANGE 0.02f
 #define LOW_RAND_RANGE -0.02f
+#define SCALE_FACTOR 0.965f
 
 
 

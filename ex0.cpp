@@ -15,7 +15,7 @@
 #include "ex0.h"
 #include "Model.h"
 #include "ShaderIO.h"
-
+#include <limits>
 /** Internal Definitions */
 
 //#define	WINDOW_SIZE         (600) // initial size of the window               //
@@ -238,7 +238,7 @@ void motion(int x, int y)
     return;
 }
 
-static const float animationDurationInFrames = 1000;
+static const float animationDurationInFrames =std::numeric_limits<float>::max();
 
 void timer(int value) {
     /* Set the timer to be called again in X milli - seconds. */
