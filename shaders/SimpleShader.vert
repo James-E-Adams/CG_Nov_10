@@ -4,7 +4,8 @@
 
 layout(location = 0) in vec4 position;
 uniform vec2 window;
-uniform mat4x4 translation;
+uniform mat4 translation;
+uniform mat4 scale;
 out vec2 window_size;
 
 void main()

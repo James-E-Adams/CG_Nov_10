@@ -29,8 +29,8 @@
 #define BALL_SIZE 0.1f
 #define TRIANGLE_AMOUNT 30.0
 #define WINDOW_SIZE 600
-#define HIGH_RAND_RANGE 0.05f
-#define LOW_RAND_RANGE -0.05f
+#define HIGH_RAND_RANGE 0.02f
+#define LOW_RAND_RANGE -0.02f
 
 
 
@@ -43,7 +43,8 @@ class Model {
 	
 	// Uniform handle:
 	GLint _fillColorUV;
-	
+	GLint _scaleUV;
+
 	// View port frame:
 	float _width, _height, _offsetX, _offsetY;
 
@@ -51,14 +52,17 @@ class Model {
 	glm::mat4 _modelMatrix;
     //The translation 3 factors, a,b,c, x+a, y+b, z+c
     glm::vec3 _translateVec;
+	glm::vec3 _scaleVec;
 
-    int _number_of_circles;
+	int _number_of_circles;
 
     std::vector<float> vertices;
 	std::vector<glm::vec3> transformationVec;
 	std::vector<glm::mat4> modelMatVec;
 	std::vector<glm::vec3> colorVec;
+	//ball_sizes stores the current ball_size, while original stores the ball size with which it was created
 	std::vector<float> ball_sizes;
+	std::vector<float> ball_sizes_original;
 	const glm::vec4 _light_source = glm::vec4(2.f, 1.f, 0.f, 1.f);
 public:
 	Model();
@@ -86,6 +90,8 @@ public:
 	int check_border_y(int circle_id);
 	float find_ball_size(float x, float y);
 	float pre_collision(int current_ball_id,float x, float y, float ball_size);
+	void shrink();
+	void grow();
 };
 
 #endif /* defined(__ex0__Model__) */

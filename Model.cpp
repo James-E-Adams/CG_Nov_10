@@ -61,6 +61,10 @@ void Model::init()
 	// Obtain uniform variable handles:
 	_fillColorUV  = glGetUniformLocation(program, "fillColor");
 
+	//init identity scale
+	_scaleUV = glGetUniformLocation(program, "scale");
+	glUniformMatrix4fv(_scaleUV, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
+
     //init the translation to Identity matrix
 	modelMatVec.push_back(glm::mat4(1.f));
 	transformationVec.push_back(generateRand(HIGH_RAND_RANGE, LOW_RAND_RANGE, 0));
@@ -75,6 +79,8 @@ void Model::init()
 		//initialise a circle centre of screen
 		add_vertices(0.0f,0.0f,BALL_SIZE);
 		ball_sizes.push_back(BALL_SIZE);
+
+		ball_sizes_original.push_back(BALL_SIZE);
 
 		//increment circles counter
 		_number_of_circles++;
@@ -196,25 +202,108 @@ void Model::createTransfrom(int circle_id)
     }
 
 
+	grow();
+
 	//checks if the ball is going to hit a wall. If so, reflect off the wall as required.
     if (check_border_x(circle_id)) transformationVec[circle_id].x*=-1.f;
 
     if (check_border_y(circle_id)) transformationVec[circle_id].y*=-1.f;
 
-    //check for collisions
-    //check_collisions(circle_id);
+
+
+
 
 
 	//What's happening here? (TODO commenting)
-    translation = glm::translate(transformationVec[circle_id]);
-    translation *= modelMatVec[circle_id];
+    translation = glm::translate(modelMatVec[circle_id], transformationVec[circle_id]);
+//    translation *= modelMatVec[circle_id];
     glUniformMatrix4fv(uniform_trans, 1, GL_FALSE, glm::value_ptr(translation));
 	modelMatVec[circle_id] = translation;
 
 	//shrinking and growing for collisions.
+	shrink();
+
+}
+
+
+void Model::grow() {
+
+	float scale_factor=0.995f;
+
+
+	for (int i=0; i<_number_of_circles; i++) {
+
+		if (ball_sizes[i] < ball_sizes_original[i]) {
+
+			glm::mat4 scale = glm::scale(modelMatVec[i], glm::vec3(1/scale_factor, 1/scale_factor, 0.f));
+			modelMatVec[i] = scale;
+//			glUniformMatrix4fv(_scaleUV, 1, GL_FALSE, glm::value_ptr(scale));
+			ball_sizes[i] *= 1/scale_factor;
+		}
+//		else
+//		{
+//			glUniformMatrix4fv(_scaleUV, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.f)));
+//		}
+	}
+}
+
+void Model::shrink() {
+	float x_1,x_2,y_1,y_2;
+
+	for (int i=0; i<_number_of_circles; i++) {
+		x_1=modelMatVec[i][3].x;
+		y_1=modelMatVec[i][3].y;
+
+		for(int j=0; j<_number_of_circles; j++) {
+			if (i==j) continue;
+			x_2=modelMatVec[j][3].x;
+			y_2=modelMatVec[j][3].y;
+			float x_distance = x_2-x_1;
+			float y_distance = y_2-y_1;
+			float distance = sqrt(x_distance*x_distance + y_distance*y_distance);
+			float scale_factor = 0.995f;
+			glm::mat4 scale_i = glm::scale(modelMatVec[i], glm::vec3(scale_factor, scale_factor, 0.f));
+			glm::mat4 scale_j = glm::scale(modelMatVec[j], glm::vec3(scale_factor, scale_factor, 0.f));
+			if (distance<(ball_sizes[i]+ball_sizes[j])) {
+				if(ball_sizes[i] > 0.03)
+				{
+//					modelMatVec[i] = scale * modelMatVec[i];
+					modelMatVec[i] = scale_i;
+
+					ball_sizes[i] *= scale_factor;
+				}
+				if(ball_sizes[j] > 0.03)
+				{
+//					modelMatVec[j] = scale * modelMatVec[j];
+					modelMatVec[j] = scale_j;
+					ball_sizes[j] *= scale_factor;
+
+				}
+				//what to do if there is a collision?
+				//Shrink here.
+			}
+//			else {
+//				glm::scale(glm::vec3(1/scale_factor, 1/scale_factor, 0.f));
+//				if (ball_sizes[i] < ball_sizes_original[i]) {
+//					modelMatVec[i] = scale * modelMatVec[i];
+//					ball_sizes[i] *= scale_factor;
+//				}
+//				if(ball_sizes[j] < ball_sizes_original[j]) {
+//
+//					modelMatVec[j] = scale * modelMatVec[j];
+//					ball_sizes[j] *= scale_factor;
+//
+//				}
+
+
+			}
+		}
+
+
 
 
 }
+
 
 
 int Model::check_border_x(int circle_id) {
@@ -301,8 +390,12 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	float ball_size = find_ball_size(x,y);
 	ball_sizes.pop_back();
 	ball_sizes.push_back(ball_size);
+	//store original in old
+	ball_sizes_original.push_back(ball_size);
 	//add vertices to the vertices vector
 	add_vertices(x,y,ball_size);
+
+
 
 
 	//Make sure the new vertices get 'added' to the buffer.
@@ -327,7 +420,6 @@ float Model::find_ball_size(float x, float y) {
 	float ball_size=BALL_SIZE;
 
 	//check to see if it will hit a wall.
-
 	if (check_border_x(_number_of_circles-1) || check_border_y(_number_of_circles-1)) ball_size=ball_size/5;
 
 	//loop is -1 because we don't want to check if it will collide with itself
