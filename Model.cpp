@@ -69,10 +69,6 @@ void Model::init()
 	colorVec.push_back(generateRand(0.f, 1.f, 1));
     createTransfrom(0);
 
-//    _translateVec = generateRand(HIGH_RAND_RANGE, LOW_RAND_RANGE);
-//	transformationVec.push_back(generateRand(HIGH_RAND_RANGE, LOW_RAND_RANGE));
-   
-
 
    GLint uniform_windowSize = glGetUniformLocation(program, "window");
     glUniform2f(uniform_windowSize, _width, _height);
@@ -152,6 +148,9 @@ void Model::draw()
 
 
 
+
+
+
 //method to account for window resize with the given width and height.
 void Model::resize(int width, int height)
 {
@@ -166,6 +165,8 @@ void Model::resize(int width, int height)
     _offsetX = 0;
     _offsetY = 0;
 }
+
+
 
 
 
@@ -202,12 +203,13 @@ void Model::createTransfrom(int circle_id)
     //check_collisions(circle_id);
 
 
-	//What's happening here? (TODO)
+	//What's happening here? (TODO commenting)
     translation = glm::translate(transformationVec[circle_id]);
     translation *= modelMatVec[circle_id];
     glUniformMatrix4fv(uniform_trans, 1, GL_FALSE, glm::value_ptr(translation));
 	modelMatVec[circle_id] = translation;
-//  printMat(_modelMatrix);
+
+
 }
 
 
@@ -219,7 +221,6 @@ int Model::check_border_x(int circle_id) {
 	if (ball_sizes.size()>0) ball_size=ball_sizes[circle_id];
 	else ball_size= BALL_SIZE;
 
-	//std::cout<<"circle_id_ball_size within check_border: " << "\n";
 	if( (modelMatVec[circle_id][3].x > (1 - ball_size)) ||
 			(modelMatVec[circle_id][3].x < -(1 - ball_size)) ) return 1;
 	return 0;
@@ -234,6 +235,7 @@ int Model::check_border_y(int circle_id) {
 			 (modelMatVec[circle_id][3].y < -(1 - ball_size))) return 1;
 	return 0;
 }
+
 
 
 //generate random vec3 TODO Proper function commenting.
@@ -262,18 +264,6 @@ float Model::orthogonalise_y(int y_pos) {
 	return (((float)(y_pos-_height)/_height)*2+1)*-1;
 }
 
-
-//using: http://jsfiddle.net/8onndhuw/2/ from http://stackoverflow.com/questions/33605109/converting-from-viewport-coordinates-to-1-12-vertex-opengl/33605229?noredirect=1#comment54993278_33605229
-// float Model::orthogonalise_x(int x_pos) {
-// 	return 2.0 * (x_pos - _width / 2.0) / _width;
-// }
-
-// float Model::orthogonalise_y(int y_pos) {
-
-// 	return -2.0 * (y_pos - _height / 2.0) / _height;
-// }
-
-
 /********************************************************************
  * Function  :   create_new_ball
  * Arguments :   x_pos  : x value of the mouse location at which to create a new ball
@@ -286,8 +276,7 @@ float Model::orthogonalise_y(int y_pos) {
  *
  \******************************************************************/
 void Model::create_new_ball(int x_pos,int y_pos) {
-	//std::cout<<"create_new_ball\n";
-	//std::cout<<"num circles pre: " << _number_of_circles << " \n";
+
 
 	//increment number of circles/balls.
 	_number_of_circles++;
@@ -314,21 +303,12 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	//something here to work out how big to initialise the ball, based on surrounding balls.
 
 	//initalise ball_size to use the check_border functions
-	ball_sizes[_number_of_circles-1]=BALL_SIZE;
+
+
+	ball_sizes.push_back(BALL_SIZE);
 	float ball_size = find_ball_size(x,y);
 	add_vertices(x,y,ball_size);
 	ball_sizes[_number_of_circles-1] =ball_size;
-
-
-	//DEBUG Printing loop.
-	// for (int i=0; i<vertices.size(); i++) {
-	// 	if (i%124==0)std::cout<<"starting new circle \n";
-	// 	std::cout<<vertices[i];
-	// 	if ((i+1)%4==0) std::cout<<'\n';
-	// 	else std::cout <<',';
-	// }
-	
-
 
 	//Make sure the new vertices get 'added' to the buffer.
 	glBindVertexArray(_vao);
@@ -347,19 +327,19 @@ float Model::find_ball_size(float x, float y) {
 	//loop is -1 because we don't want to check if it will collide with itself
 	for(int i=0; i<_number_of_circles-1; i++) {
 
-		if (pre_collision(i, x,y,ball_size)) {
+		float collision = pre_collision(i, x,y,ball_size);
+
+		if (collision>0.0f) {
 			//std::cout<<"There was a collision. \n";
-			ball_size=ball_size/2;
+			ball_size=collision;
 		}
 	}         
 
 	return ball_size;
 }
 
-
-//return 1 for collision, 0 for no collision. 
-
-int Model::pre_collision(int current_ball_id,float x, float y, float ball_size) {
+//return the required distance to prevent a collision
+float Model::pre_collision(int current_ball_id,float x, float y, float ball_size) {
 
 	//printMat(modelMatVec[current_ball_id]);
 	float x_current=modelMatVec[current_ball_id][3].x;
@@ -370,7 +350,7 @@ int Model::pre_collision(int current_ball_id,float x, float y, float ball_size) 
 	float distance = sqrt(x_distance*x_distance + y_distance*y_distance);
 
 	if (distance>(ball_sizes[current_ball_id] + ball_size)) return 0;
-	else return 1;
+	else return distance-ball_sizes[current_ball_id];
 }
 
 

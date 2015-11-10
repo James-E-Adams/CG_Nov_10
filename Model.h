@@ -84,7 +84,7 @@ public:
 	int check_border_x(int circle_id);
 	int check_border_y(int circle_id);
 	float find_ball_size(float x, float y);
-	int pre_collision(int current_ball_id,float x, float y, float ball_size);
+	float pre_collision(int current_ball_id,float x, float y, float ball_size);
 };
 
 #endif /* defined(__ex0__Model__) */
