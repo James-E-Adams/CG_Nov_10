@@ -70,7 +70,7 @@ Model _model;
 /** main function */
 int main(int argc, char* argv[])
 {
-	std::cout << "Starting ex0..." << std::endl;
+	std::cout << "Starting ex1..." << std::endl;
 	
 	// Initialize GLUT
     glutInit(&argc, argv) ;
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 #endif
     glutInitWindowSize(WINDOW_SIZE, WINDOW_SIZE);
     glutInitWindowPosition(WINDOW_POS_X, WINDOW_POS_Y);
-    glutCreateWindow("CG Ex0");
+    glutCreateWindow("CG Ex1");
 	
 	// Initialize GLEW
     glewExperimental = GL_TRUE;
