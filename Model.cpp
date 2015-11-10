@@ -135,9 +135,9 @@ void Model::draw()
 
 	for(int i = 0; i < _number_of_circles; ++i)
 	{
-		glUniform4f(_fillColorUV, colorVec[i].r, colorVec[i].g, colorVec[i].b, 1.0);
 		glDrawArrays(GL_TRIANGLE_FAN, i*numberOfVertices, numberOfVertices);
 		createTransfrom(i);
+		glUniform4f(_fillColorUV, colorVec[i].r, colorVec[i].g, colorVec[i].b, 1.0);
 	}
 
     //Make the transform each frame TODO (what goes here? Has it been moved inside the above loop?)
@@ -351,7 +351,7 @@ float Model::find_ball_size(float x, float y) {
 			//std::cout<<"There was a collision. \n";
 			ball_size=ball_size/2;
 		}
-	}
+	}         
 
 	return ball_size;
 }
@@ -362,30 +362,15 @@ float Model::find_ball_size(float x, float y) {
 int Model::pre_collision(int current_ball_id,float x, float y, float ball_size) {
 
 	//printMat(modelMatVec[current_ball_id]);
-	float x_current_max= modelMatVec[current_ball_id][3].x + ball_sizes[current_ball_id];
-	float x_current_min=x_current_max-2*ball_sizes[current_ball_id];
+	float x_current=modelMatVec[current_ball_id][3].x;
+	float y_current=modelMatVec[current_ball_id][3].y;
 
-	//std::cout << "The current ball #" << current_ball_id << " falls_x between " << x_current_min<< " and " << x_current_max <<"\n"; 
-	float x_new_max = x+ball_size;
-	float x_new_min= x-ball_size;
+	float x_distance = x_current-x;
+	float y_distance = y_current-y;
+	float distance = sqrt(x_distance*x_distance + y_distance*y_distance);
 
-	float y_current_max= modelMatVec[current_ball_id][3].y + ball_sizes[current_ball_id];
-	float y_current_min=y_current_max-2*ball_sizes[current_ball_id];
-	float y_new_max = y+ball_size;
-	float y_new_min= y-ball_size;
-
-	int x_in_path=0;
-	int y_in_path=0;
-
-	if ((x_new_min>=x_current_min) && (x_new_min<= x_current_max)) x_in_path=1;
-	if ((x_new_max>=x_current_min) && (x_new_max<= x_current_max)) x_in_path=1;
-
-	if ((y_new_min>=y_current_min) && (y_new_min<= y_current_max)) y_in_path=1;
-	if ((y_new_max>=y_current_min) && (y_new_max<= y_current_max)) y_in_path=1;
-
-	if (x_in_path && y_in_path) return 1;
-	else return 0;
-
+	if (distance>(ball_sizes[current_ball_id] + ball_size)) return 0;
+	else return 1;
 }
 
 
