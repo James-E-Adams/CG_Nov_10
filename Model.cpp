@@ -418,11 +418,6 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	//matrix scaling
 	float scale_factor=ball_size/BALL_SIZE;
 	glm::mat4 scale = glm::scale(modelMatVec[_number_of_circles-1], glm::vec3(scale_factor, scale_factor, 0.f));
-
-	//Make sure the new vertices get 'added' to the buffer.
-	glBindVertexArray(_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 }
 
 
