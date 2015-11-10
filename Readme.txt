@@ -40,7 +40,30 @@ URLs used: https://www.opengl.org/discussion_boards/showthread.php/170331-Fragme
 
 
 
+
+
 EX1b additional notes:
+
+Changes made:
+
+Implementation notes:
+
+Initial animation/colour of ball by: Randomly generating transformations/colour upon creation of a ball.
+Wall collisions: Check to see if the ball will hit the wall. If so, reflect the transformation on the correct axis.
+				i.e if it hit a vertical wall, reflection in the x axis of the translation.
+
+Generation of new balls: Check to see if the new ball will be in range of a wall/other ball collision, and account
+						for this.
+
+
+Shader/light source:
+
+
+
+
+
+
+
 
 
 

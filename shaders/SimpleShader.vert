@@ -5,6 +5,7 @@
 layout(location = 0) in vec4 position;
 uniform vec2 window;
 uniform mat4x4 translation;
+out vec2 window_size;
 
 void main()
 {
@@ -22,4 +23,5 @@ void main()
     }
 
     gl_Position = tempTrans * tempPos;
+    window_size = window;
 }

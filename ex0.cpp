@@ -18,7 +18,7 @@
 
 /** Internal Definitions */
 
-#define	WINDOW_SIZE         (600) // initial size of the window               //
+//#define	WINDOW_SIZE         (600) // initial size of the window               //
 #define	WINDOW_POS_X        (100) // initial X position of the window         //
 #define	WINDOW_POS_Y        (100) // initial Y position of the window         //
 
@@ -206,6 +206,7 @@ void keyboard(unsigned char key, int x, int y)
  \******************************************************************/
 void mouse(int button, int state, int x, int y)
 {
+    //state condition ensures that it doesn't respond twice to a single click.
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
     {
         _model.create_new_ball(x,y);

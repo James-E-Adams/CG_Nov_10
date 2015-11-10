@@ -51,8 +51,6 @@ Model::~Model()
 
 void Model::init()
 {
-	std::cout<<"ini\n";
-
 	programManager::sharedInstance()
 	.createProgram("default",
 				   SHADERS_DIR "SimpleShader.vert",
@@ -74,8 +72,6 @@ void Model::init()
     glUniform2f(uniform_windowSize, _width, _height);
 
 
-	// Initialize vertices buffer and transfer it to OpenGL
-	
 		//initialise a circle centre of screen
 		add_vertices(0.0f,0.0f,BALL_SIZE);
 		ball_sizes.push_back(BALL_SIZE);
@@ -112,8 +108,11 @@ void Model::init()
 
 void Model::draw()
 {
+
 	// Set the program to be used in subsequent lines:
 	GLuint program = programManager::sharedInstance().programWithID("default");
+	GLint uniform_direction = glGetUniformLocation(program, "highLight");
+	GLint uniform_size = glGetUniformLocation(program, "ballSize");
 	glUseProgram(program);
 
 	//Set polygon draw mode
@@ -123,21 +122,22 @@ void Model::draw()
 	// Draw using the state stored in the Vertex Array object:
 	glBindVertexArray(_vao);
 
-	//TODO
+	//number of triangles
 	size_t numberOfVertices = TRIANGLE_AMOUNT + 2;
 
 
-	//loop through and draw all the circles, creating the correct transformations (TODO)
-
+	//loop through and draw all the circles, creating the correct transformations
 	for(int i = 0; i < _number_of_circles; ++i)
 	{
 		glDrawArrays(GL_TRIANGLE_FAN, i*numberOfVertices, numberOfVertices);
 		createTransfrom(i);
 		glUniform4f(_fillColorUV, colorVec[i].r, colorVec[i].g, colorVec[i].b, 1.0);
+
+		glm::vec4 direction = (_light_source - modelMatVec[i][3]) / glm::distance(modelMatVec[i][3], _light_source) *
+							  (ball_sizes[i] /2) + modelMatVec[i][3];
+		glUniform4f(uniform_direction, direction.x, direction.y, direction.z, direction.w);
+		glUniform1f(uniform_size, ball_sizes[i]);
 	}
-
-    //Make the transform each frame TODO (what goes here? Has it been moved inside the above loop?)
-
 
 	// Unbind the Vertex Array object
 	glBindVertexArray(0);
@@ -191,10 +191,12 @@ void Model::createTransfrom(int circle_id)
     //if so, bounces off the wall correctly.
 
     std::cout<<"Printing array of ball sizes: \n";
-    for (int i=0; i< ball_sizes.size(); i++) {
+    for (unsigned int i=0; i< ball_sizes.size(); i++) {
     	std::cout<<ball_sizes[i]<<"\n";
-
     }
+
+
+	//checks if the ball is going to hit a wall. If so, reflect off the wall as required.
     if (check_border_x(circle_id)) transformationVec[circle_id].x*=-1.f;
 
     if (check_border_y(circle_id)) transformationVec[circle_id].y*=-1.f;
@@ -209,11 +211,10 @@ void Model::createTransfrom(int circle_id)
     glUniformMatrix4fv(uniform_trans, 1, GL_FALSE, glm::value_ptr(translation));
 	modelMatVec[circle_id] = translation;
 
+	//shrinking and growing for collisions.
+
 
 }
-
-
-
 
 
 int Model::check_border_x(int circle_id) {
@@ -281,34 +282,28 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	//increment number of circles/balls.
 	_number_of_circles++;
 
-
-	//std::cout<<"num circles post: " << _number_of_circles << " \n";
-
-
 	//calculate the vertex co-ordinate based on the mouse click in the window.
 	float x=orthogonalise_x(x_pos);
 	float y=orthogonalise_y(y_pos);
 
-	//std::cout<<"new x and y are: "<< x << " , " << y << "\n";
-
-
-	//TODO What's happening here? Can't follow.
-
+	//puts the new position into the matrix vector
 	modelMatVec.push_back(glm::translate(glm::vec3(x, y, 0.f)) * glm::mat4(1.f));
+	//generates the random direction which the new ball will move in
 	transformationVec.push_back(generateRand(HIGH_RAND_RANGE, LOW_RAND_RANGE, 0));
-	colorVec.push_back(generateRand(0.f, 1.f, 1));
 
-	//Adds the relevant vertices of a ball, centred at x,y, to the vertex vector.
-
-	//something here to work out how big to initialise the ball, based on surrounding balls.
-
-	//initalise ball_size to use the check_border functions
+	//generate random colour for the new ball, ensuring not too dark/light
+	colorVec.push_back(generateRand(0.f,0.4f, 1));
 
 
+	//initialise ball_size to use the check_border functions
 	ball_sizes.push_back(BALL_SIZE);
+	//find the real ball size according to potential collisions
 	float ball_size = find_ball_size(x,y);
+	ball_sizes.pop_back();
+	ball_sizes.push_back(ball_size);
+	//add vertices to the vertices vector
 	add_vertices(x,y,ball_size);
-	ball_sizes[_number_of_circles-1] =ball_size;
+
 
 	//Make sure the new vertices get 'added' to the buffer.
 	glBindVertexArray(_vao);
@@ -316,6 +311,17 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 }
 
+
+/********************************************************************
+ * Function  :   find_ball_size
+ * Arguments :   x_pos  : x value of the mouse location at which to create a new ball
+ *               y_pos  : y value of the mouse location at which to create a new ball
+ * Returns   :   n/a
+ * Throws    :   n/a
+ *
+ * Purpose   :   This function works out what size to make the new ball, based on borders/other balls.
+ *
+ \******************************************************************/
 float Model::find_ball_size(float x, float y) {
 	//std::cout<<"entering find_ball_size\n";
 	float ball_size=BALL_SIZE;
@@ -355,6 +361,7 @@ float Model::pre_collision(int current_ball_id,float x, float y, float ball_size
 
 
 
+
 /********************************************************************
  * Function  :   add_vertices
  * Arguments :   x  : x value of the centre vertex of the to-be-created circle.
@@ -384,9 +391,8 @@ void Model::add_vertices(float x, float y, float ball_size) {
 
 
 
+//debug function for printing matrices
 
-
-//not used?
 void Model::printMat(glm::mat4 matrix)
 {
     std::cout << "Matrix:";
@@ -398,17 +404,4 @@ void Model::printMat(glm::mat4 matrix)
        }
        std::cout << std::endl;
    }
-    //std::cout << matrix[3].x << " " << matrix[3][1] << " " << matrix[3][2] << " " << matrix[3][3] << std::endl;
 }
-
-
-
-////generate random vec3
-//glm::vec3 generateRand(float high, float low)
-//{
-//    float x_trans = low + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(high-low)));
-//    std::cout<<"x:"<< x_trans<< " ";
-//    float y_trans = low + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(high-low)));
-//    std::cout<<"y:"<< y_trans<<std::endl;
-//    return glm::vec3(x_trans, y_trans, 0.f);
-//}

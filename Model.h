@@ -59,6 +59,7 @@ class Model {
 	std::vector<glm::mat4> modelMatVec;
 	std::vector<glm::vec3> colorVec;
 	std::vector<float> ball_sizes;
+	const glm::vec4 _light_source = glm::vec4(2.f, 1.f, 0.f, 1.f);
 public:
 	Model();
 
