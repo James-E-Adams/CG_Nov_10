@@ -69,7 +69,7 @@ void Model::init()
 	modelMatVec.push_back(glm::mat4(1.f));
 	transformationVec.push_back(generateRand(HIGH_RAND_RANGE, LOW_RAND_RANGE, 0));
 	colorVec.push_back(generateRand(0.f, 1.f, 1));
-    createTransfrom(0);
+    createTransform(0);
 
 
    GLint uniform_windowSize = glGetUniformLocation(program, "window");
@@ -136,7 +136,7 @@ void Model::draw()
 	for(int i = 0; i < _number_of_circles; ++i)
 	{
 		glDrawArrays(GL_TRIANGLE_FAN, 0, numberOfVertices);
-		createTransfrom(i);
+		createTransform(i);
 		glUniform4f(_fillColorUV, colorVec[i].r, colorVec[i].g, colorVec[i].b, 1.0);
 
 		glm::vec4 direction = (_light_source - modelMatVec[i][3]) / glm::distance(modelMatVec[i][3], _light_source) *
@@ -190,7 +190,7 @@ void Model::resize(int width, int height)
  *
  *
  \******************************************************************/
-void Model::createTransfrom(int circle_id)
+void Model::createTransform(int circle_id)
 {
     GLuint program = programManager::sharedInstance().programWithID("default");
     glUseProgram(program);
@@ -368,7 +368,7 @@ glm::vec3 Model::generateRand(float high, float low, int color)
 
 
 
-//using james' method. TODO (Is it correct?)
+//using james' method.
 float Model::orthogonalise_x(int x_pos) {
 	return ((float)(x_pos-_width)/_width)*2+1;
 }
@@ -501,7 +501,6 @@ void Model::add_vertices(float x, float y, float ball_size) {
 	vertices.push_back(0.f);
 	vertices.push_back(0.0f);
 	vertices.push_back(1.0f);
-	//TODO add guards for creating next to walls
 		for (int i=0; i <= TRIANGLE_AMOUNT; i++) {
 			vertices.push_back((float)(ball_size * std::cos(2.0 * M_PI * i / TRIANGLE_AMOUNT)));
             vertices.push_back((float)(ball_size * std::sin(2.0 * M_PI * i / TRIANGLE_AMOUNT)));

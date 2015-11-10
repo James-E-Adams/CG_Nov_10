@@ -67,32 +67,26 @@ class Model {
 	const glm::vec4 _light_source = glm::vec4(2.f, 1.f, 0.f, 1.f);
 public:
 	Model();
-
-public:
 	virtual ~Model();
-
-public:
 	void init();
-	
-public:
 	void draw();
-	
-public:
 	void resize(int width, int height);
-    void createTransfrom(int circle_id);
-    float orthogonalise_x(int width);
-    float orthogonalise_y(int height);
+    void createTransform(int circle_id);
     void create_new_ball(int x_pos,int y_pos);
-    void add_vertices(float x, float y, float ball_size);
-    void printMat(glm::mat4 matrix);
-	glm::vec3 generateRand(float high, float low, int color);
 
+
+private:
 	int check_border_x(int circle_id);
 	int check_border_y(int circle_id);
 	float find_ball_size(float x, float y);
 	float pre_collision(int current_ball_id,float x, float y, float ball_size);
 	void shrink();
 	void grow();
+	void add_vertices(float x, float y, float ball_size);
+	void printMat(glm::mat4 matrix);
+	glm::vec3 generateRand(float high, float low, int color);
+	float orthogonalise_x(int width);
+	float orthogonalise_y(int height);
 };
 
 #endif /* defined(__ex0__Model__) */
