@@ -58,6 +58,7 @@ class Model {
 	std::vector<glm::vec3> transformationVec;
 	std::vector<glm::mat4> modelMatVec;
 	std::vector<glm::vec3> colorVec;
+	std::vector<float> ball_sizes;
 public:
 	Model();
 
@@ -76,10 +77,14 @@ public:
     float orthogonalise_x(int width);
     float orthogonalise_y(int height);
     void create_new_ball(int x_pos,int y_pos);
-    void add_vertices(float x, float y);
+    void add_vertices(float x, float y, float ball_size);
     void printMat(glm::mat4 matrix);
 	glm::vec3 generateRand(float high, float low, int color);
-	
+
+	int check_border_x(int circle_id);
+	int check_border_y(int circle_id);
+	float find_ball_size(float x, float y);
+	int pre_collision(int current_ball_id,float x, float y, float ball_size);
 };
 
 #endif /* defined(__ex0__Model__) */

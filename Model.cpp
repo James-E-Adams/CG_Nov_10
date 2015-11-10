@@ -81,7 +81,9 @@ void Model::init()
 	// Initialize vertices buffer and transfer it to OpenGL
 	
 		//initialise a circle centre of screen
-		add_vertices(0.0f,0.0f);
+		add_vertices(0.0f,0.0f,BALL_SIZE);
+		ball_sizes.push_back(BALL_SIZE);
+
 		//increment circles counter
 		_number_of_circles++;
 		// Create and bind the object's Vertex Array Object:
@@ -184,23 +186,22 @@ void Model::createTransfrom(int circle_id)
     glm::mat4 translation;
 
 
-    //TODO put into function
     //Checks if the transformation will force the ball to hit a wall
     //if so, bounces off the wall correctly.
-    //TODO I don't understand any of these variable names. Please fix!
+
+    std::cout<<"Printing array of ball sizes: \n";
+    for (int i=0; i< ball_sizes.size(); i++) {
+    	std::cout<<ball_sizes[i]<<"\n";
+
+    }
+    if (check_border_x(circle_id)) transformationVec[circle_id].x*=-1.f;
+
+    if (check_border_y(circle_id)) transformationVec[circle_id].y*=-1.f;
+
+    //check for collisions
+    //check_collisions(circle_id);
 
 
-    if( (modelMatVec[circle_id][3].x > (1 - BALL_SIZE)) ||
-			(modelMatVec[circle_id][3].x < -(1 - BALL_SIZE)) ) {
-
-		transformationVec[circle_id].x*=-1.f;
-
-	}
-	if ( (modelMatVec[circle_id][3].y > (1 - BALL_SIZE)) || (modelMatVec[circle_id][3].y < -(1 - BALL_SIZE))) {
-
-		transformationVec[circle_id].y*=-1.f;
-
-	}
 	//What's happening here? (TODO)
     translation = glm::translate(transformationVec[circle_id]);
     translation *= modelMatVec[circle_id];
@@ -213,18 +214,40 @@ void Model::createTransfrom(int circle_id)
 
 
 
+int Model::check_border_x(int circle_id) {
+	float ball_size;
+	if (ball_sizes.size()>0) ball_size=ball_sizes[circle_id];
+	else ball_size= BALL_SIZE;
+
+	//std::cout<<"circle_id_ball_size within check_border: " << "\n";
+	if( (modelMatVec[circle_id][3].x > (1 - ball_size)) ||
+			(modelMatVec[circle_id][3].x < -(1 - ball_size)) ) return 1;
+	return 0;
+}
+
+int Model::check_border_y(int circle_id) {
+	float ball_size;
+	if (ball_sizes.size()>0) ball_size=ball_sizes[circle_id];
+	else ball_size= BALL_SIZE;
+
+	if ( (modelMatVec[circle_id][3].y > (1 - ball_size)) ||
+			 (modelMatVec[circle_id][3].y < -(1 - ball_size))) return 1;
+	return 0;
+}
+
+
 //generate random vec3 TODO Proper function commenting.
 glm::vec3 Model::generateRand(float high, float low, int color)
 {
 	float x_trans = low + static_cast <float> (std::rand()) /( static_cast <float> (RAND_MAX/(high-low)));
-	std::cout<<"x:"<< x_trans<< " ";
+	//std::cout<<"x:"<< x_trans<< " ";
 	float y_trans = low + static_cast <float> (std::rand()) /( static_cast <float> (RAND_MAX/(high-low)));
 	float z_trans = 0.f;
 	if(color)
 	{
 		z_trans = low + static_cast <float> (std::rand()) /( static_cast <float> (RAND_MAX/(high-low)));
 	}
-	std::cout<<"y:"<< y_trans<<std::endl;
+	//std::cout<<"y:"<< y_trans<<std::endl;
 	return glm::vec3(x_trans, y_trans, z_trans);
 }
 
@@ -287,7 +310,15 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	colorVec.push_back(generateRand(0.f, 1.f, 1));
 
 	//Adds the relevant vertices of a ball, centred at x,y, to the vertex vector.
-	add_vertices(x,y);
+
+	//something here to work out how big to initialise the ball, based on surrounding balls.
+
+	//initalise ball_size to use the check_border functions
+	ball_sizes[_number_of_circles-1]=BALL_SIZE;
+	float ball_size = find_ball_size(x,y);
+	add_vertices(x,y,ball_size);
+	ball_sizes[_number_of_circles-1] =ball_size;
+
 
 	//DEBUG Printing loop.
 	// for (int i=0; i<vertices.size(); i++) {
@@ -305,6 +336,57 @@ void Model::create_new_ball(int x_pos,int y_pos) {
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 }
 
+float Model::find_ball_size(float x, float y) {
+	//std::cout<<"entering find_ball_size\n";
+	float ball_size=BALL_SIZE;
+
+	//check to see if it will hit a wall.
+
+	if (check_border_x(_number_of_circles-1) || check_border_y(_number_of_circles-1)) ball_size=ball_size/5;
+
+	//loop is -1 because we don't want to check if it will collide with itself
+	for(int i=0; i<_number_of_circles-1; i++) {
+
+		if (pre_collision(i, x,y,ball_size)) {
+			//std::cout<<"There was a collision. \n";
+			ball_size=ball_size/2;
+		}
+	}
+
+	return ball_size;
+}
+
+
+//return 1 for collision, 0 for no collision. 
+
+int Model::pre_collision(int current_ball_id,float x, float y, float ball_size) {
+
+	//printMat(modelMatVec[current_ball_id]);
+	float x_current_max= modelMatVec[current_ball_id][3].x + ball_sizes[current_ball_id];
+	float x_current_min=x_current_max-2*ball_sizes[current_ball_id];
+
+	//std::cout << "The current ball #" << current_ball_id << " falls_x between " << x_current_min<< " and " << x_current_max <<"\n"; 
+	float x_new_max = x+ball_size;
+	float x_new_min= x-ball_size;
+
+	float y_current_max= modelMatVec[current_ball_id][3].y + ball_sizes[current_ball_id];
+	float y_current_min=y_current_max-2*ball_sizes[current_ball_id];
+	float y_new_max = y+ball_size;
+	float y_new_min= y-ball_size;
+
+	int x_in_path=0;
+	int y_in_path=0;
+
+	if ((x_new_min>=x_current_min) && (x_new_min<= x_current_max)) x_in_path=1;
+	if ((x_new_max>=x_current_min) && (x_new_max<= x_current_max)) x_in_path=1;
+
+	if ((y_new_min>=y_current_min) && (y_new_min<= y_current_max)) y_in_path=1;
+	if ((y_new_max>=y_current_min) && (y_new_max<= y_current_max)) y_in_path=1;
+
+	if (x_in_path && y_in_path) return 1;
+	else return 0;
+
+}
 
 
 
@@ -318,7 +400,7 @@ void Model::create_new_ball(int x_pos,int y_pos) {
  * Purpose   :   This function generates the required vertices and adds them to the vertex vector.
  *
  \******************************************************************/
-void Model::add_vertices(float x, float y) {
+void Model::add_vertices(float x, float y, float ball_size) {
 	//put the centre in.
 	vertices.push_back(0.f);
 	vertices.push_back(0.f);
@@ -326,8 +408,8 @@ void Model::add_vertices(float x, float y) {
 	vertices.push_back(1.0f);
 	//TODO add guards for creating next to walls
 		for (int i=0; i <= TRIANGLE_AMOUNT; i++) {
-			vertices.push_back((float)(BALL_SIZE * std::cos(2.0 * M_PI * i / TRIANGLE_AMOUNT)));
-            vertices.push_back((float)(BALL_SIZE * std::sin(2.0 * M_PI * i / TRIANGLE_AMOUNT)));
+			vertices.push_back((float)(ball_size * std::cos(2.0 * M_PI * i / TRIANGLE_AMOUNT)));
+            vertices.push_back((float)(ball_size * std::sin(2.0 * M_PI * i / TRIANGLE_AMOUNT)));
             vertices.push_back(0.0f);
             vertices.push_back(1.0f);
 		}
@@ -343,15 +425,15 @@ void Model::add_vertices(float x, float y) {
 void Model::printMat(glm::mat4 matrix)
 {
     std::cout << "Matrix:";
-//    for(int i = 0; i < 4; ++i)
-//    {
-//        for(int j = 0; j < 4; ++j)
-//        {
-//            std::cout << matrix[i][j] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-    std::cout << matrix[3].x << " " << matrix[3][1] << " " << matrix[3][2] << " " << matrix[3][3] << std::endl;
+   for(int i = 0; i < 4; ++i)
+   {
+       for(int j = 0; j < 4; ++j)
+       {
+           std::cout << matrix[i][j] << " ";
+       }
+       std::cout << std::endl;
+   }
+    //std::cout << matrix[3].x << " " << matrix[3][1] << " " << matrix[3][2] << " " << matrix[3][3] << std::endl;
 }
 
 
